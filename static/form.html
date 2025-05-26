@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TodoList</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+    }
+    .list {
+      margin-top: 30px;
+      padding: 20px;
+      background-color: white;
+      border: 1px solid #ccc;
+      min-height: 200px;
+    }
+    .task {
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div>
+    <form class="cc" id="taskForm">
+      <label>Task</label>
+      <input   style="margin-right: 100px;"      type="text" name="task" required />
+
+      <label>In what day? </label>
+      <select name="day">
+        <option value="monday">Monday</option>
+        <option value="tuesday">Tuesday</option>
+        <option value="wednesday">Wednesday</option>
+        <option value="thursday">Thursday</option>
+        <option value="friday">Friday</option>
+        <option value="saturday">Saturday</option>
+        <option value="sunday">Sunday</option>
+      </select>
+
+      <input type="submit" value="Submit"/>
+    </form>
+  </div>
+
+  <div class="list" id="taskList"></div>
+
+  <script>
+    const form = document.getElementById("taskForm");
+    const taskList = document.getElementById("taskList");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const formData = new FormData(form);
+      const params = new URLSearchParams(formData);
+
+      const response = await fetch("/form", {
+        method: "POST",
+        body: params
+      });
+
+      const data = await response.json();
+
+      const taskHTML = `<div class="task"><strong>${data.day}:</strong> ${data.task}</div>`;
+      taskList.innerHTML += taskHTML;
+
+      form.reset();
+    });
+  </script>
+</body>
+</html>
