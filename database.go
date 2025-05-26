@@ -1,147 +1,116 @@
+
 package main
 
 import (
-	"database/sql"
-	"fmt"
-	"log"
-	_ "github.com/lib/pq"
+    "database/sql"
+    "log"
+
+    _ "github.com/lib/pq"
 )
 
-type Task struct{ 
-	ID int64
-	Task string
-	Days int16
+
+type Task struct {
+	ID   int64  `json:"id"`
+	Task string `json:"task"`
+	Days int16  `json:"days"`
 }
 
-func main() {
-	db, err := sql.Open("postgres", "host=127.0.0.1 port=5432 user=postgres dbname=todolist_db sslmode=disable ")
+type DB struct {
+	Conn *sql.DB
+}
 
-	if err!= nil{
-		log.Fatal(err)
-	}
-
-	defer db.Close()
-
-	if err := db.Ping(); err!=nil{
-		log.Fatal(err)
-	} 
-	
-	
-	// err = insertTask(db, Task{
-	// 	Task: "poop time", 
-	// 	Days: 1,
-	// })
-	
-	
-	users,err := getUsers(db)
+func NewDB(dataSourceName string) (*DB, error) {
+	dbConn, err := sql.Open("postgres", dataSourceName)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
-	
-	for _,c := range users{ 
-		fmt.Println(c)
-	}
-
-}
-
-
-
-
-func getUsers(db *sql.DB) ([]Task, error) { 
-	rows, err := db.Query("select * from taskinf")
-	if err!=nil{ 
+	if err := dbConn.Ping(); err != nil {
 		return nil, err
 	}
 
+	return &DB{Conn: dbConn}, nil
+}
+
+func (db *DB) Close() {
+	db.Conn.Close()
+}
+
+func (db *DB) GetAllTasks() ([]Task, error) {
+	rows, err := db.Conn.Query("SELECT id, task, days FROM taskinf ORDER BY id")
+	if err != nil {
+		return nil, err
+	}
 	defer rows.Close()
 
-	users := make([]Task, 0)
-	for rows.Next()  {
-		u:= Task{}
-		err := rows.Scan(&u.ID, &u.Task, &u.Days)
-		if err!=nil{ 
-			log.Fatal(err)
+	tasks := []Task{}
+	for rows.Next() {
+		var t Task
+		err := rows.Scan(&t.ID, &t.Task, &t.Days)
+		if err != nil {
+			log.Println("Scan error:", err)
+			continue
 		}
-		users = append(users, u)
+		tasks = append(tasks, t)
 	}
-
-	err =rows.Err()
-	if err!=nil{ 
-		return nil, err
-	}
-
-	return users, nil
-
+	return tasks, nil
 }
 
+func (db *DB) InsertTask(t Task) error {
+	tx, err := db.Conn.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
 
-func getUserByDays(db *sql.DB, days int) (Task, error) { 
-	var u Task
-	err := db.QueryRow("select * from taskinf where days = $1", days).Scan(&u.ID, &u.Task, &u.Days)
-
-	return u, err
-}
-
-
-func insertTask(db *sql.DB, u Task) error {
-	tx,err := db.Begin()
-	if err!=nil{ 
+	_, err = tx.Exec("INSERT INTO taskinf(task, days) VALUES ($1, $2)", t.Task, t.Days)
+	if err != nil {
 		return err
 	}
 
-	defer tx.Rollback()
-
-	_, err = tx.Exec("insert into taskinf(task, days) values ($1, $2)", u.Task, u.Days)
-	if err!=nil{ 
-		return  err
+	_, err = tx.Exec("INSERT INTO logs(entity, action) VALUES ($1, $2)", "task", "created")
+	if err != nil {
+		return err
 	}
-	
-	_, err = tx.Exec("insert into logs(entity, action) values ($1, $2)", "task", "created")
-	if err!=nil{ 
-		return  err
-	}
-
 
 	return tx.Commit()
 }
 
+func (db *DB) DeleteTask(id int64) error {
+	tx, err := db.Conn.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
 
-func deleteTask(db *sql.DB, id int) error {
-	tx,err := db.Begin()
-	if err!=nil{ 
+	_, err = tx.Exec("DELETE FROM taskinf WHERE id = $1", id)
+	if err != nil {
 		return err
 	}
 
-	defer tx.Rollback()
+	_, err = tx.Exec("INSERT INTO logs(entity, action) VALUES ($1, $2)", "task", "deleted")
+	if err != nil {
+		return err
+	}
 
-	_, err = tx.Exec("delete from taskinf where id = $1", id)
-	if err!=nil{ 
-		return  err
-	}
-	
-	_, err = tx.Exec("insert into logs(entity, action) values ($1, $2)", "task", "deleted")
-	if err!=nil{ 
-		return  err
-	}
 	return tx.Commit()
 }
 
+func (db *DB) UpdateTask(id int64, newTask Task) error {
+	tx, err := db.Conn.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
 
-func updateTask(db *sql.DB, id int, newTask Task) error {
-	tx,err := db.Begin()
-	if err!=nil{ 
+	_, err = tx.Exec("UPDATE taskinf SET task = $1, days = $2 WHERE id = $3", newTask.Task, newTask.Days, id)
+	if err != nil {
 		return err
 	}
 
-	defer tx.Rollback()
-	_, err = db.Exec("update taskinf set task=$1, days=$2 where id = $3",newTask.Task, newTask.Days, id)
-	if err!=nil{ 
-		return  err
+	_, err = tx.Exec("INSERT INTO logs(entity, action) VALUES ($1, $2)", "task", "updated")
+	if err != nil {
+		return err
 	}
-	
-	_, err = tx.Exec("insert into logs(entity, action) values ($1, $2)", "task", "updated")
-	if err!=nil{ 
-		return  err
-	}
+
 	return tx.Commit()
 }
