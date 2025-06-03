@@ -3,52 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="style.css">
   <title>TodoList</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      padding: 20px;
-    }
-    .list {
-      margin-top: 30px;
-      padding: 20px;
-      background-color: white;
-      border: 1px solid #ccc;
-      min-height: 200px;
-    }
-
-    .task{
-      display: grid;
-      grid-template-columns: 150px 1fr auto auto;
-      margin-bottom: 10px;
-    }
-
-    .task:not(:last-child){
-      border-bottom: 1px dashed rgba(0,0,0,.1);
-    }
-
-    .btn {
-      font-size: 29px;
-      width: 15px;
-      background: none;
-      border: none;
-    }
-
-    button {
-      cursor: pointer;
-      margin-left: 10px;
-    }
-  </style>
 </head>
 <body>
-  <div>
+  <div  class="values" >
     <form id="taskForm">
-      <label>Task</label>
-      <input style="margin-right: 100px;" type="text" name="task" required />
+      <label class="ttt">Task</label>
+      <input class="center" type="text" name="task" required />
 
-      <label>In what day? </label>
+      <label class="ttt" style="margin-top: 5px;"> In what day? </label>
       <select name="day">
-        <option value="monday">Monday</option>
+        <option value="monday" >Monday</option>
         <option value="tuesday">Tuesday</option>
         <option value="wednesday">Wednesday</option>
         <option value="thursday">Thursday</option>
@@ -56,8 +22,21 @@
         <option value="saturday">Saturday</option>
         <option value="sunday">Sunday</option>
       </select>
-
       <input type="submit" value="Submit" />
+
+      <label class="ttt" style="margin-top: 5px;" >Choose Filter</label>
+      <select name="filter" id="filterSelect">
+        <option value="alltask" >All task</option>
+        <option value="monday" >Only at Monday</option>
+        <option value="tuesday">Only at Tuesday</option>
+        <option value="wednesday">Only at Wednesday</option>
+        <option value="thursday">Only at Thursday</option>
+        <option value="friday">Only at Friday</option>
+        <option value="saturday">Only at Saturday</option>
+        <option value="sunday">Only at Sunday</option>
+      </select>
+
+
     </form>
   </div>
 
@@ -66,7 +45,7 @@
   <script>
     const form = document.getElementById("taskForm");
     const taskList = document.getElementById("taskList");
-
+    
     function dayIntToStr(day) {
       switch (day) {
         case 1:
@@ -87,13 +66,18 @@
           return "Unknown";
       }
     }
+    document.getElementById("filterSelect").addEventListener("change", () => {
+    loadTasks();
+  });
 
     async function loadTasks() {
-      const resp = await fetch("/tasks");
+      const filterValue = document.querySelector("select[name='filter']").value;
+      const resp = await fetch(`/tasks?filter=${filterValue}`);
       const tasks = await resp.json();
 
       taskList.innerHTML = "";
       tasks.forEach((t) => {
+        
         const div = document.createElement("div");
         div.className = "task";
         div.innerHTML = `

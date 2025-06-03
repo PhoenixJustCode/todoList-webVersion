@@ -35,6 +35,28 @@ func (db *DB) Close() {
 	db.Conn.Close()
 }
 
+
+func (db *DB) GetTasksByDays(days int) ([]Task, error) {
+	rows, err := db.Conn.Query("SELECT id, task, days FROM taskinf WHERE days = $1 ORDER BY id", days)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	tasks := []Task{}
+	for rows.Next() {
+		var t Task
+		err := rows.Scan(&t.ID, &t.Task, &t.Days)
+		if err != nil {
+			log.Println("Scan error:", err)
+			continue
+		}
+		tasks = append(tasks, t)
+	}
+	return tasks, nil
+}
+
+
 func (db *DB) GetAllTasks() ([]Task, error) {
 	rows, err := db.Conn.Query("SELECT id, task, days FROM taskinf ORDER BY id")
 	if err != nil {

@@ -32,18 +32,40 @@ func main() {
 }
 
 func tasksHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method Not Allowed", 405)
-		return
+	dayParam := r.URL.Query().Get("filter")
+
+	var tasks []Task
+	var err error
+
+	if dayParam == "" || dayParam == "alltask" {
+		tasks, err = db.GetAllTasks()
+	} else {
+		dayMap := map[string]int{
+			"monday":    1,
+			"tuesday":   2,
+			"wednesday": 3,
+			"thursday":  4,
+			"friday":    5,
+			"saturday":  6,
+			"sunday":    7,
+		}
+		dayInt, ok := dayMap[dayParam]
+		if !ok {
+			http.Error(w, "Invalid day filter", http.StatusBadRequest)
+			return
+		}
+		tasks, err = db.GetTasksByDays(dayInt)
 	}
-	tasks, err := db.GetAllTasks()
+
 	if err != nil {
-		http.Error(w, "Failed to get tasks", 500)
+		http.Error(w, "Failed to get tasks", http.StatusInternalServerError)
 		return
 	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(tasks)
 }
+
 
 func addTaskHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
