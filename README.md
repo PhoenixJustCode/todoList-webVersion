@@ -22,4 +22,15 @@ A simple and lightweight web-based Todo List application built with Go, PostgreS
 
 ```bash
 git clone https://github.com/your-username/todo-web-go.git](https://github.com/PhoenixJustCode/todoList-webVersion
-cd todo-web-go
+cd todoList-webVersion
+```
+### 2. Run the code 
+```bash 
+go run .
+``` 
+
+
+## 📷 Interface Preview
+
+![изображение](https://github.com/user-attachments/assets/323ccd9e-85e9-4cbb-928f-a4fa1ab9d6b8)
+
